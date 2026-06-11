@@ -1,0 +1,53 @@
+# ========================================================
+# CinéMatic — Docker 忽略文件
+# ========================================================
+
+# Python 虚拟环境
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 前端
+frontend/node_modules/
+frontend/dist/
+
+# 缓存 & 临时文件
+cache/
+reports/
+
+# 环境变量（不要将密钥打包进镜像）
+.env
+.env.docker
+.env.*.local
+
+# SQLite 会话状态（每个容器实例独立）
+data/sessions.db
+data/sessions.db-*
+data/sessions.db-wal
+data/sessions.db-shm
+
+# 原始爬虫数据（运行时不需要）
+data/raw/
+
+# 版本控制
+.git/
+.gitignore
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code
+.claude/

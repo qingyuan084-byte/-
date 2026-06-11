@@ -1,0 +1,351 @@
+/* ================================================================
+   CinéMatic — 电影推荐系统双主题（深色 / 浅色）
+   设计方向: Luxury/Refined — 金色 + 毛玻璃
+   通过 [data-theme] 属性切换，JS 控制在 <html> 上
+   ================================================================ */
+
+/* ── CSS 自定义属性 ────────────────────────────────── */
+
+/* 深色模式（默认） */
+:root,
+[data-theme="dark"] {
+  /* 背景层级 */
+  --bg-deep: #0a0a0f;
+  --bg-base: #111118;
+  --bg-elevated: #1a1a26;
+  --bg-surface: #222230;
+  --bg-glass: rgba(26, 26, 38, 0.65);
+
+  /* 金色主色调 */
+  --gold: #f5c518;
+  --gold-bright: #ffd54f;
+  --gold-dim: #c49b0e;
+  --gold-glow: rgba(245, 197, 24, 0.25);
+  --gold-subtle: rgba(245, 197, 24, 0.08);
+
+  /* 文字 */
+  --text-primary: #f0ece4;
+  --text-secondary: #a09b90;
+  --text-muted: #5e5a52;
+  --text-inverse: #0a0a0f;
+
+  /* 通用 */
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* 浅色模式 */
+[data-theme="light"] {
+  /* 背景层级 */
+  --bg-deep: #f1f5f9;
+  --bg-base: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-surface: #f1f5f9;
+  --bg-glass: rgba(255, 255, 255, 0.78);
+
+  /* 金色 → 暖橙 */
+  --gold: #ea580c;
+  --gold-bright: #f97316;
+  --gold-dim: #c2410c;
+  --gold-glow: rgba(234, 88, 12, 0.18);
+  --gold-subtle: rgba(234, 88, 12, 0.06);
+
+  /* 文字 */
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* 通用 */
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ── 不随主题变化的常量 ──────────────────────────── */
+
+:root {
+  /* 语义色 */
+  --success: #2ecc71;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --info: #3498db;
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.18);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.22);
+  --shadow-gold: 0 0 24px var(--gold-glow);
+
+  /* 字体 */
+  --font-display: "Cinzel", "Georgia", "Noto Serif SC", serif;
+  --font-body: "DM Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+
+  /* 过渡 */
+  --ease-out: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 180ms;
+  --duration-base: 280ms;
+  --duration-slow: 450ms;
+
+  /* 毛玻璃 */
+  --glass-blur: 16px;
+  --glass-border: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+/* ── 全局重置 ──────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-surface);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* 选中文本 */
+::selection {
+  background: var(--gold-glow);
+  color: var(--text-primary);
+}
+
+/* ── Element Plus 主题覆盖 ─────────────────────────── */
+
+/* 深色模式 Element Plus */
+:root,
+[data-theme="dark"] {
+  --el-color-primary: #f5c518;
+  --el-color-primary-light-3: #f7d447;
+  --el-color-primary-light-5: #f9e076;
+  --el-color-primary-light-7: #fbeca5;
+  --el-color-primary-light-8: #fcf2c7;
+  --el-color-primary-light-9: #fef9e9;
+  --el-color-primary-dark-2: #c49b0e;
+  --el-color-success: #2ecc71;
+  --el-color-warning: #f39c12;
+  --el-color-danger: #e74c3c;
+  --el-color-info: #3498db;
+
+  --el-bg-color: #111118;
+  --el-bg-color-overlay: #1a1a26;
+  --el-bg-color-page: #0a0a0f;
+
+  --el-text-color-primary: #f0ece4;
+  --el-text-color-regular: #c5bfb3;
+  --el-text-color-secondary: #a09b90;
+  --el-text-color-placeholder: #5e5a52;
+  --el-text-color-disabled: #3e3a34;
+
+  --el-border-color: #2a2a38;
+  --el-border-color-light: #222230;
+  --el-border-color-lighter: #1a1a26;
+  --el-border-color-dark: #3a3a48;
+}
+
+/* 浅色模式 Element Plus */
+[data-theme="light"] {
+  --el-color-primary: #ea580c;
+  --el-color-primary-light-3: #f97316;
+  --el-color-primary-light-5: #fb923c;
+  --el-color-primary-light-7: #fdba74;
+  --el-color-primary-light-8: #fed7aa;
+  --el-color-primary-light-9: #ffedd5;
+  --el-color-primary-dark-2: #c2410c;
+  --el-color-success: #16a34a;
+  --el-color-warning: #d97706;
+  --el-color-danger: #dc2626;
+  --el-color-info: #2563eb;
+
+  --el-bg-color: #ffffff;
+  --el-bg-color-overlay: #ffffff;
+  --el-bg-color-page: #f1f5f9;
+
+  --el-text-color-primary: #1e293b;
+  --el-text-color-regular: #334155;
+  --el-text-color-secondary: #475569;
+  --el-text-color-placeholder: #94a3b8;
+  --el-text-color-disabled: #cbd5e1;
+
+  --el-border-color: #e2e8f0;
+  --el-border-color-light: #f1f5f9;
+  --el-border-color-lighter: #f8fafc;
+  --el-border-color-dark: #cbd5e1;
+}
+
+/* 不变的 Element Plus 变量 */
+:root {
+  --el-border-radius-base: 12px;
+  --el-fill-color: var(--bg-elevated);
+  --el-fill-color-light: var(--bg-surface);
+  --el-fill-color-blank: var(--bg-deep);
+}
+
+/* Element Plus 组件覆盖 */
+.el-button--primary {
+  --el-button-bg-color: var(--gold);
+  --el-button-border-color: var(--gold);
+  --el-button-text-color: #0a0a0f;
+  --el-button-hover-bg-color: var(--gold-bright);
+  --el-button-hover-border-color: var(--gold-bright);
+  --el-button-hover-text-color: #0a0a0f;
+  --el-button-active-bg-color: var(--gold-dim);
+  --el-button-active-border-color: var(--gold-dim);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: all var(--duration-base) var(--ease-out);
+}
+[data-theme="light"] .el-button--primary {
+  --el-button-text-color: #ffffff;
+  --el-button-hover-text-color: #ffffff;
+}
+.el-button--primary:hover {
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-1px);
+}
+
+/* 输入框 */
+.el-input__wrapper {
+  background: var(--bg-surface) !important;
+  border-color: var(--el-border-color) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: none !important;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.el-input__wrapper:hover {
+  border-color: var(--text-muted) !important;
+}
+.el-input__wrapper.is-focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 1px var(--gold-glow) !important;
+}
+.el-input__inner {
+  color: var(--text-primary) !important;
+}
+.el-input__inner::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* 下拉框 */
+.el-select-dropdown {
+  background: var(--bg-elevated) !important;
+  border: var(--glass-border) !important;
+  backdrop-filter: blur(var(--glass-blur));
+}
+.el-select-dropdown__item {
+  color: var(--text-secondary) !important;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background: var(--gold-subtle) !important;
+  color: var(--gold) !important;
+}
+.el-select-dropdown__item.selected {
+  color: var(--gold) !important;
+  font-weight: 600;
+}
+
+/* 标签 */
+.el-tag {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* 卡片 */
+.el-card {
+  background: var(--bg-elevated) !important;
+  border: var(--glass-border) !important;
+  border-radius: var(--radius-lg) !important;
+  color: var(--text-primary) !important;
+}
+
+/* 空状态 */
+.el-empty__description {
+  color: var(--text-muted) !important;
+}
+
+/* 消息提示 */
+.el-message {
+  background: var(--bg-elevated) !important;
+  border: var(--glass-border) !important;
+  border-radius: var(--radius-md) !important;
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+/* 加载 */
+.el-loading-mask {
+  background: rgba(0, 0, 0, 0.15) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* 分页 */
+[data-theme="light"] .el-pagination .btn-prev,
+[data-theme="light"] .el-pagination .btn-next,
+[data-theme="light"] .el-pagination .el-pager li {
+  background: var(--bg-elevated) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--el-border-color) !important;
+}
+[data-theme="light"] .el-pagination .el-pager li.is-active {
+  background: var(--gold) !important;
+  color: #fff !important;
+}
+
+/* ── 工具类 ────────────────────────────────────────── */
+.glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: var(--glass-border);
+}
+
+.gold-text {
+  color: var(--gold);
+}
+
+.glow-on-hover {
+  transition: box-shadow var(--duration-base) var(--ease-out);
+}
+.glow-on-hover:hover {
+  box-shadow: var(--shadow-gold);
+}

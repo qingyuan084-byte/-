@@ -1,0 +1,37 @@
+# ========================================================
+# CinéMatic 后端 Dockerfile
+# ========================================================
+# 构建: docker build -f Dockerfile.backend -t cinematic-backend .
+# ========================================================
+
+FROM python:3.11-slim-bookworm
+
+# 系统依赖 — scipy / faiss-cpu / implicit 编译需要
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libopenblas-dev \
+    gfortran \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ── 安装 Python 依赖 ────────────────────────────────
+# 先复制 requirements 以利用 Docker 层缓存
+COPY requirements.txt .
+
+# uvloop 在 slim 镜像上可能缺 libuv，但不影响运行（pip 会跳过编译失败的可选依赖）
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ── 复制项目代码 ─────────────────────────────────────
+COPY . .
+
+# 创建缓存目录
+RUN mkdir -p cache/images
+
+EXPOSE 8002
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')" || exit 1
+
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8002"]
