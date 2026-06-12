@@ -6,24 +6,29 @@ set -e
 
 echo "[Railway] 启动 CinéMatic..."
 
-# 1) 用 envsubst 替换 nginx 配置中的 ${PORT}
+# 确保必要的目录存在
+mkdir -p /var/log/nginx /var/lib/nginx /run/nginx
+echo "[Railway] Nginx 目录已创建"
+
+# 用 envsubst 替换 nginx 配置中的 $PORT
 if [ -z "$PORT" ]; then
     PORT=80
 fi
 echo "[Railway] PORT=$PORT"
 
 envsubst '$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+echo "[Railway] Nginx 配置已生成:"
+head -5 /etc/nginx/conf.d/default.conf
 
-# 2) 启动后端 (Uvicorn, 内部 8002)
+# 测试 nginx 配置
+nginx -t
+
+# 启动后端 (Uvicorn, 后台运行)
 echo "[Railway] 启动后端..."
 cd /app
 python backend/app.py &
 BACKEND_PID=$!
 
-# 3) 启动 Nginx (前台运行)
-echo "[Railway] 启动 Nginx..."
-nginx -g "daemon off;" &
-NGINX_PID=$!
-
-# 等待任一进程退出
-wait -n $BACKEND_PID $NGINX_PID
+# Nginx 前台运行 (exec 替换当前进程，容器由 nginx 保活)
+echo "[Railway] 启动 Nginx (前台)..."
+exec nginx -g "daemon off;"
