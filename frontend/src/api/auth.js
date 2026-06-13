@@ -49,3 +49,32 @@ export async function getFavoriteMovies(token) {
   const { data } = await api.get("/favorites/detail", { headers: authHeaders(token) });
   return data;
 }
+
+export async function setRating(token, movieId, rating) {
+  const { data } = await api.post(
+    "/ratings/set",
+    { movie_id: movieId, rating },
+    { headers: authHeaders(token) },
+  );
+  return data;
+}
+
+export async function deleteRating(token, movieId) {
+  const { data } = await api.delete(`/ratings/${movieId}`, { headers: authHeaders(token) });
+  return data;
+}
+
+export async function getMovieRating(token, movieId) {
+  const { data } = await api.get(`/ratings/${movieId}`, { headers: authHeaders(token) });
+  return data;
+}
+
+export async function getAllRatings(token) {
+  const { data } = await api.get("/ratings", { headers: authHeaders(token) });
+  return data;
+}
+
+export async function getRatedMovies(token) {
+  const { data } = await api.get("/ratings/detail", { headers: authHeaders(token) });
+  return data;
+}

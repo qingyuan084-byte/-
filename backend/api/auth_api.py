@@ -23,6 +23,10 @@ from backend.models.auth_models import (
     FavoriteToggleResponse,
     FavoriteListResponse,
     FavoriteMoviesResponse,
+    RatingSetRequest,
+    RatingSetResponse,
+    RatingGetResponse,
+    RatingListResponse,
 )
 from backend.services.auth_service import (
     register as _register,
@@ -32,6 +36,10 @@ from backend.services.auth_service import (
     toggle_favorite as _toggle_favorite,
     get_user_favorites,
     get_user_profile,
+    set_rating as _set_rating,
+    remove_rating as _remove_rating,
+    get_user_rating as _get_user_rating,
+    get_all_ratings as _get_all_ratings,
 )
 
 router = APIRouter(tags=["auth"])
@@ -137,3 +145,63 @@ async def list_favorites_detail(user: dict = Depends(get_current_user)):
             movies.append(detail)
 
     return FavoriteMoviesResponse(movies=movies, total=len(movies))
+
+
+# ── 评分端点 ──────────────────────────────────────────
+
+@router.post("/api/ratings/set", response_model=RatingSetResponse)
+async def set_movie_rating(
+    body: RatingSetRequest,
+    user: dict = Depends(get_current_user),
+):
+    """设置或更新用户对电影的评分（1.0-5.0，支持 0.5 步进）。"""
+    result = _set_rating(user["user_id"], body.movie_id, body.rating)
+    return RatingSetResponse(**result)
+
+
+@router.delete("/api/ratings/{movie_id}", response_model=RatingSetResponse)
+async def delete_movie_rating(
+    movie_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """删除用户对某部电影的评分。"""
+    removed = _remove_rating(user["user_id"], movie_id)
+    return RatingSetResponse(
+        movie_id=movie_id, rating=0, is_new=False, is_removed=removed,
+    )
+
+
+@router.get("/api/ratings/{movie_id}", response_model=RatingGetResponse)
+async def get_movie_rating(
+    movie_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """获取用户对某部电影的评分，未评返回 None。"""
+    rating = _get_user_rating(user["user_id"], movie_id)
+    return RatingGetResponse(movie_id=movie_id, rating=rating)
+
+
+@router.get("/api/ratings", response_model=RatingListResponse)
+async def list_ratings(user: dict = Depends(get_current_user)):
+    """获取用户所有评分记录。"""
+    ratings = _get_all_ratings(user["user_id"])
+    return RatingListResponse(ratings=ratings, total=len(ratings))
+
+
+@router.get("/api/ratings/detail")
+async def list_ratings_detail(user: dict = Depends(get_current_user)):
+    """获取用户评分电影的完整详情列表（含评分值）。"""
+    ratings = _get_all_ratings(user["user_id"])
+    if not ratings:
+        return {"movies": [], "total": 0}
+
+    from backend.services.recommender_service import RecommenderService
+    service = RecommenderService()
+    movies = []
+    for mid, score in ratings.items():
+        detail = service.get_movie_detail(mid)
+        if detail:
+            detail["user_rating"] = score
+            movies.append(detail)
+
+    return {"movies": movies, "total": len(movies)}

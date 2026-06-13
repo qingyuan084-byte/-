@@ -26,12 +26,6 @@
             <span>⌕</span>
           </button>
         </div>
-        <button class="icon-btn" title="收藏">
-          <span>♡</span>
-        </button>
-        <button class="icon-btn" title="登录">
-          <span>👤</span>
-        </button>
       </div>
     </div>
   </header>
@@ -147,24 +141,6 @@ defineEmits(["update:modelValue", "search", "scrollToTop"]);
   transition: color 0.2s;
 }
 .search-btn:hover {
-  color: var(--gold);
-}
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.icon-btn:hover {
-  background: var(--bg-elevated);
   color: var(--gold);
 }
 @media (max-width: 768px) {

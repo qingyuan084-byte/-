@@ -16,6 +16,11 @@ from backend.services.auth_db import (
     get_favorites as _db_get_favorites,
     is_favorited as _db_is_favorited,
     get_favorite_count,
+    set_rating as _db_set_rating,
+    remove_rating as _db_remove_rating,
+    get_user_rating as _db_get_user_rating,
+    get_all_ratings as _db_get_all_ratings,
+    get_rating_count,
 )
 
 # ── 密码哈希 (pbkdf2_hmac, stdlib, 零依赖) ─────────────
@@ -177,4 +182,32 @@ def get_user_profile(user_id: str) -> dict | None:
         "username": user["username"],
         "created_at": user["created_at"],
         "favorite_count": get_favorite_count(user_id),
+        "rating_count": get_rating_count(user_id),
     }
+
+
+# ── 评分操作 ──────────────────────────────────────────
+
+def set_rating(user_id: str, movie_id: str, rating: float) -> dict:
+    """
+    设置或更新用户对电影的评分（1.0-5.0，支持 0.5 步进）。
+    返回 {'movie_id': str, 'rating': float, 'is_new': bool}
+    """
+    rating = round(max(1.0, min(5.0, float(rating))) * 2) / 2
+    is_new = _db_set_rating(user_id, movie_id, rating)
+    return {"movie_id": movie_id, "rating": rating, "is_new": is_new}
+
+
+def remove_rating(user_id: str, movie_id: str) -> bool:
+    """删除评分，返回是否确实删除了记录。"""
+    return _db_remove_rating(user_id, movie_id)
+
+
+def get_user_rating(user_id: str, movie_id: str) -> float | None:
+    """获取用户对某部电影的评分，未评返回 None。"""
+    return _db_get_user_rating(user_id, movie_id)
+
+
+def get_all_ratings(user_id: str) -> dict[str, float]:
+    """获取用户所有评分，返回 {movie_id: rating, ...}。"""
+    return _db_get_all_ratings(user_id)

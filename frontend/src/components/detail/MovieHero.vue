@@ -36,8 +36,24 @@
           :title="favorited ? '取消收藏' : '收藏电影'"
           @click="handleFavorite"
         >
-          {{ favorited ? '★' : '☆' }}
+          {{ favorited ? '♥' : '♡' }}
         </button>
+      </div>
+
+      <div class="user-rating-row">
+        <span class="user-rate-label">我的评分</span>
+        <StarRating
+          :model-value="userRating"
+          :readonly="!isAuthenticated"
+          show-label
+          @rate="handleRate"
+        />
+        <button
+          v-if="userRating > 0"
+          class="clear-rate-btn"
+          title="清除评分"
+          @click="handleClearRating"
+        >✕</button>
       </div>
 
       <div class="meta-grid">
@@ -88,9 +104,10 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "@/composables/useAuth.js";
+import StarRating from "@/components/StarRating.vue";
 
 const props = defineProps({
   movie: { type: Object, required: true },
@@ -99,9 +116,14 @@ const props = defineProps({
 defineEmits(["goCategory"]);
 
 const router = useRouter();
-const { isAuthenticated, toggleFavorite, isFavorited } = useAuth();
+const { isAuthenticated, toggleFavorite, isFavorited, setRating, removeRating, getUserRating } = useAuth();
 
 const favorited = computed(() => isFavorited(props.movie.movie_id));
+const userRating = ref(0);
+
+watch(() => props.movie.movie_id, (mid) => {
+  userRating.value = getUserRating(mid) || 0;
+}, { immediate: true });
 
 async function handleFavorite() {
   if (!isAuthenticated.value) {
@@ -109,6 +131,20 @@ async function handleFavorite() {
     return;
   }
   await toggleFavorite(props.movie.movie_id);
+}
+
+async function handleRate(val) {
+  if (!isAuthenticated.value) {
+    router.push("/auth?redirect=" + encodeURIComponent(`/movie/${props.movie.movie_id}`));
+    return;
+  }
+  await setRating(props.movie.movie_id, val);
+  userRating.value = getUserRating(props.movie.movie_id) || 0;
+}
+
+async function handleClearRating() {
+  await removeRating(props.movie.movie_id);
+  userRating.value = 0;
 }
 
 function formatNumber(val) {
@@ -196,6 +232,43 @@ const genreTags = computed(() => {
   background: var(--gold-subtle);
   color: var(--gold);
   box-shadow: 0 0 12px var(--gold-glow);
+}
+.user-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+}
+.user-rate-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.clear-rate-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+  margin-left: 4px;
+}
+.clear-rate-btn:hover {
+  border-color: #f87171;
+  color: #f87171;
 }
 .meta-grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;

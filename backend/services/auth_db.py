@@ -1,5 +1,5 @@
 """
-用户认证数据库层 — SQLite 存储用户账号和收藏数据。
+用户认证数据库层 — SQLite 存储用户账号、收藏数据和评分数据。
 
 线程安全（threading.local）+ WAL 模式，与 sessions.py 模式一致。
 数据库文件: data/users.db
@@ -35,6 +35,16 @@ def _get_auth_db() -> sqlite3.Connection:
                 user_id TEXT NOT NULL,
                 movie_id TEXT NOT NULL,
                 added_at REAL NOT NULL,
+                PRIMARY KEY (user_id, movie_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS ratings (
+                user_id TEXT NOT NULL,
+                movie_id TEXT NOT NULL,
+                rating REAL NOT NULL CHECK(rating >= 1.0 AND rating <= 5.0),
+                rated_at REAL NOT NULL,
                 PRIMARY KEY (user_id, movie_id),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )"""
@@ -138,6 +148,74 @@ def get_favorite_count(user_id: str) -> int:
     conn = _get_auth_db()
     row = conn.execute(
         "SELECT COUNT(*) FROM favorites WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    return row[0] if row else 0
+
+
+# ── 评分 CRUD ──────────────────────────────────────────
+
+def set_rating(user_id: str, movie_id: str, rating: float) -> bool:
+    """设置或更新评分（1.0-5.0，支持 0.5 步进）。返回 True 为新评，False 为更新。"""
+    conn = _get_auth_db()
+    cur = conn.execute(
+        "SELECT rating FROM ratings WHERE user_id = ? AND movie_id = ?",
+        (user_id, movie_id),
+    )
+    existing = cur.fetchone()
+    now = time.time()
+    if existing:
+        conn.execute(
+            "UPDATE ratings SET rating = ?, rated_at = ? WHERE user_id = ? AND movie_id = ?",
+            (rating, now, user_id, movie_id),
+        )
+        conn.commit()
+        return False
+    else:
+        conn.execute(
+            "INSERT INTO ratings (user_id, movie_id, rating, rated_at) VALUES (?, ?, ?, ?)",
+            (user_id, movie_id, rating, now),
+        )
+        conn.commit()
+        return True
+
+
+def remove_rating(user_id: str, movie_id: str) -> bool:
+    """删除评分，返回是否确实删除了记录。"""
+    conn = _get_auth_db()
+    cur = conn.execute(
+        "DELETE FROM ratings WHERE user_id = ? AND movie_id = ?",
+        (user_id, movie_id),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def get_user_rating(user_id: str, movie_id: str) -> float | None:
+    """获取用户对某部电影的评分，未评返回 None。"""
+    conn = _get_auth_db()
+    row = conn.execute(
+        "SELECT rating FROM ratings WHERE user_id = ? AND movie_id = ?",
+        (user_id, movie_id),
+    ).fetchone()
+    return float(row[0]) if row else None
+
+
+def get_all_ratings(user_id: str) -> dict[str, float]:
+    """获取用户所有评分，返回 {movie_id: rating, ...}。"""
+    conn = _get_auth_db()
+    rows = conn.execute(
+        "SELECT movie_id, rating FROM ratings WHERE user_id = ? ORDER BY rated_at DESC",
+        (user_id,),
+    ).fetchall()
+    return {r[0]: float(r[1]) for r in rows}
+
+
+def get_rating_count(user_id: str) -> int:
+    """获取用户评分总数。"""
+    conn = _get_auth_db()
+    row = conn.execute(
+        "SELECT COUNT(*) FROM ratings WHERE user_id = ?",
         (user_id,),
     ).fetchone()
     return row[0] if row else 0

@@ -7,6 +7,7 @@
         <h1 class="hero-name">{{ username }}</h1>
         <p class="hero-meta">
           已收藏 <strong>{{ favorites.length }}</strong> 部电影
+          <span v-if="ratingCount > 0"> · 已评分 <strong>{{ ratingCount }}</strong> 部</span>
           <span v-if="profile"> · {{ formatDate(profile.created_at) }} 加入</span>
         </p>
       </div>
@@ -16,10 +17,46 @@
       </button>
     </div>
 
+    <!-- 评分列表 -->
+    <section v-if="ratedMovies.length > 0" class="favorites-section">
+      <h2 class="section-title">
+        <span class="title-accent">★</span>
+        我的评分
+        <span class="count-badge">{{ ratedMovies.length }}</span>
+      </h2>
+      <div class="movies-grid">
+        <div
+          v-for="movie in ratedMovies"
+          :key="movie.movie_id"
+          class="rated-card"
+          @click="$router.push(`/movie/${movie.movie_id}`)"
+        >
+          <div class="rated-poster">
+            <img
+              v-if="movie.poster_url"
+              :src="movie.poster_url"
+              :alt="movie.title"
+              class="rated-img"
+            />
+            <div v-else class="rated-ph">
+              <span>🎬</span>
+            </div>
+            <div class="rated-score-badge">
+              <StarRating :model-value="movie.user_rating" readonly />
+            </div>
+          </div>
+          <div class="rated-info">
+            <h3 class="rated-title">{{ movie.title }}</h3>
+            <span v-if="movie.rating > 0" class="rated-douban">豆瓣 {{ movie.rating }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 收藏列表 -->
     <section class="favorites-section">
       <h2 class="section-title">
-        <span class="title-accent">★</span>
+        <span class="title-accent">♥</span>
         我的收藏
         <span v-if="!loading && favorites.length > 0" class="count-badge">
           {{ favorites.length }}
@@ -33,9 +70,9 @@
 
       <!-- 空状态 -->
       <div v-else-if="favorites.length === 0" class="empty-state">
-        <span class="empty-icon">☆</span>
+        <span class="empty-icon">♡</span>
         <h3>还没有收藏电影</h3>
-        <p>去发现好电影，点击星星收藏吧！</p>
+        <p>去发现好电影，点击爱心收藏吧！</p>
         <router-link to="/explore" class="explore-btn">去探索</router-link>
       </div>
 
@@ -56,16 +93,20 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "@/composables/useAuth.js";
 import { getFavoriteMovies } from "@/api/auth.js";
+import { getRatedMovies } from "@/api/auth.js";
 import MovieCard from "@/components/MovieCard.vue";
+import StarRating from "@/components/StarRating.vue";
 
 const router = useRouter();
-const { currentUser, isAuthenticated, token, favorites, logout } = useAuth();
+const { currentUser, isAuthenticated, token, favorites, ratings, logout } = useAuth();
 
 const username = computed(() => currentUser.value || "");
 const initial = computed(() => username.value.charAt(0).toUpperCase());
+const ratingCount = computed(() => Object.keys(ratings.value).length);
 
 const profile = ref(null);
 const favoriteMovies = ref([]);
+const ratedMovies = ref([]);
 const loading = ref(true);
 
 function formatDate(isoStr) {
@@ -85,10 +126,15 @@ onMounted(async () => {
     return;
   }
   try {
-    const data = await getFavoriteMovies(token.value);
-    favoriteMovies.value = data.movies || [];
+    const [favData, ratedData] = await Promise.all([
+      getFavoriteMovies(token.value),
+      getRatedMovies(token.value),
+    ]);
+    favoriteMovies.value = favData.movies || [];
+    ratedMovies.value = ratedData.movies || [];
   } catch {
     favoriteMovies.value = [];
+    ratedMovies.value = [];
   }
   loading.value = false;
 });
@@ -296,5 +342,68 @@ onMounted(async () => {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 14px;
   }
+}
+
+/* ── Rated cards ────────────────────── */
+.rated-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.rated-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(245, 197, 24, 0.12);
+}
+.rated-poster {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+.rated-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.rated-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #1a1a2e, #16213e);
+  font-size: 40px;
+}
+.rated-score-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 8px 8px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.88) 0%, transparent 100%);
+  display: flex;
+  justify-content: center;
+}
+.rated-info {
+  padding: 10px 12px 12px;
+}
+.rated-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.rated-douban {
+  font-size: 12px;
+  color: var(--gold);
+  font-weight: 700;
+  font-family: var(--font-display);
 }
 </style>

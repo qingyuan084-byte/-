@@ -57,3 +57,31 @@ class FavoriteMoviesResponse(BaseModel):
     """收藏电影详情列表响应"""
     movies: list[dict] = Field(default_factory=list)
     total: int = 0
+
+
+# ── 评分模型 ──────────────────────────────────────────
+
+class RatingSetRequest(BaseModel):
+    """评分设置请求"""
+    movie_id: str = Field(..., min_length=1, description="豆瓣 movie_id")
+    rating: float = Field(..., ge=1.0, le=5.0, description="评分 1.0-5.0，支持 0.5 步进")
+
+
+class RatingSetResponse(BaseModel):
+    """评分设置响应"""
+    movie_id: str
+    rating: float
+    is_new: bool
+    is_removed: bool = False
+
+
+class RatingGetResponse(BaseModel):
+    """单部电影评分查询响应"""
+    movie_id: str
+    rating: float | None = None
+
+
+class RatingListResponse(BaseModel):
+    """用户所有评分列表响应"""
+    ratings: dict[str, float] = Field(default_factory=dict)
+    total: int = 0
