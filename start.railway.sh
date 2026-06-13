@@ -6,6 +6,16 @@ set -e
 
 echo "[Railway] 启动 CinéMatic..."
 
+# 首次部署：将初始数据从镜像复制到持久化卷
+if [ ! -f /app/data/.persisted ]; then
+    echo "[Railway] 首次部署 — 初始化数据到持久化卷..."
+    cp -rn /app/data-init/* /app/data/
+    touch /app/data/.persisted
+    echo "[Railway] 数据初始化完成"
+else
+    echo "[Railway] 检测到已有持久化数据，跳过初始化"
+fi
+
 # 确保必要的目录存在
 mkdir -p /var/log/nginx /var/lib/nginx /run/nginx
 echo "[Railway] Nginx 目录已创建"
