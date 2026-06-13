@@ -45,6 +45,7 @@
             :movies="displayHotMovies"
             :loading="loading.hot"
             :expanded="expandedSection === 'hot'"
+            more-link="/explore"
             @toggle-expand="expandSection('hot')"
           />
           <MovieSection
@@ -52,6 +53,7 @@
             :movies="displayNewestMovies"
             :loading="loading.newest"
             :expanded="expandedSection === 'newest'"
+            more-link="/explore"
             @toggle-expand="expandSection('newest')"
           />
           <MovieSection
@@ -60,6 +62,7 @@
             :loading="loading.top"
             :expanded="expandedSection === 'top'"
             badge="≥ 8.5"
+            more-link="/explore"
             @toggle-expand="expandSection('top')"
           />
 
