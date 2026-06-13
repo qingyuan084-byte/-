@@ -1,18 +1,19 @@
 <template>
-  <div class="star-rating" @mouseleave="hovered = 0">
+  <div class="star-rating" :class="{ readonly: readonly }" @mouseleave="hoverRating = 0">
     <button
-      v-for="i in 10"
-      :key="i"
-      :class="starClass(i)"
-      :title="i % 2 === 0 ? `${i / 2} 星` : `${(i / 2).toFixed(1)} 星`"
-      :aria-label="`${(i / 2).toFixed(i % 2 === 0 ? 0 : 1)} 星`"
+      v-for="star in 5"
+      :key="star"
       class="star-btn"
-      @mousemove.prevent="hovered = i"
-      @click.stop="onClick(i)"
+      :tabindex="readonly ? -1 : 0"
+      @mousemove="!readonly && onHover(star, $event)"
+      @click="!readonly && onClick(star, $event)"
     >
-      {{ starChar(i) }}
+      <span class="star-bg">☆</span>
+      <span class="star-fg" :style="{ width: fillPct(star) + '%' }">
+        <span class="star-fg-inner">★</span>
+      </span>
     </button>
-    <span v-if="showLabel" class="rating-label">{{ displayLabel }}</span>
+    <span v-if="showLabel" class="rating-label">{{ labelText }}</span>
   </div>
 </template>
 
@@ -27,30 +28,31 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "rate"]);
 
-const hovered = ref(0);
-const active = computed(() => hovered.value || Math.round(props.modelValue * 2));
+const hoverRating = ref(0);
 
-function starChar(i) {
-  const val = active.value;
-  if (i <= val) return "★";
-  return "☆";
+const displayRating = computed(() => hoverRating.value || props.modelValue);
+
+function fillPct(star) {
+  const dr = displayRating.value;
+  if (dr >= star) return 100;
+  if (dr >= star - 0.5) return 50;
+  return 0;
 }
 
-function starClass(i) {
-  const val = active.value;
-  if (i <= val) return "star-btn filled";
-  return "star-btn";
+function onHover(star, e) {
+  const half = e.offsetX < e.currentTarget.offsetWidth / 2;
+  hoverRating.value = half ? star - 0.5 : star;
 }
 
-function onClick(i) {
-  if (props.readonly) return;
-  const rating = i / 2;
-  emit("update:modelValue", rating);
-  emit("rate", rating);
+function onClick(star, e) {
+  const half = e.offsetX < e.currentTarget.offsetWidth / 2;
+  const val = half ? star - 0.5 : star;
+  emit("update:modelValue", val);
+  emit("rate", val);
 }
 
 const LABELS = ["", "太差了", "较差", "一般", "推荐", "力荐"];
-const displayLabel = computed(() => {
+const labelText = computed(() => {
   if (!props.modelValue) return "";
   const n = Math.round(props.modelValue);
   return `${props.modelValue.toFixed(1)} — ${LABELS[n] || ""}`;
@@ -61,45 +63,69 @@ const displayLabel = computed(() => {
 .star-rating {
   display: inline-flex;
   align-items: center;
-  gap: 1px;
+  gap: 4px;
   user-select: none;
   -webkit-user-select: none;
 }
 .star-btn {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 26px;
-  line-height: 1;
-  transition: transform 0.15s ease, color 0.15s ease;
-  color: #374151;
+  font-size: 28px;
+  line-height: 30px;
+  text-align: center;
   overflow: hidden;
+  transition: transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.star-btn:hover {
-  transform: scale(1.2);
+.star-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
-.star-btn.filled {
+.star-rating:not(.readonly) .star-btn:hover {
+  transform: scale(1.15);
+}
+.star-bg {
+  color: #374151;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+.star-btn:hover .star-bg {
+  color: #4b5563;
+}
+.star-fg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  transition: width 0.1s ease;
+}
+.star-fg-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
   color: #f5c518;
-}
-/* 奇数按钮 = 半星：裁剪50% */
-.star-btn:nth-child(odd) {
-  width: 14px;
-  direction: ltr;
-}
-.star-btn:nth-child(even) {
-  width: 14px;
-  direction: rtl;
+  display: block;
 }
 .rating-label {
-  margin-left: 10px;
+  margin-left: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--gold);
   font-family: var(--font-display);
   white-space: nowrap;
+  min-width: 90px;
 }
 </style>

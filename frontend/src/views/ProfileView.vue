@@ -6,9 +6,7 @@
       <div class="hero-info">
         <h1 class="hero-name">{{ username }}</h1>
         <p class="hero-meta">
-          已收藏 <strong>{{ favorites.length }}</strong> 部电影
-          <span v-if="ratingCount > 0"> · 已评分 <strong>{{ ratingCount }}</strong> 部</span>
-          <span v-if="profile"> · {{ formatDate(profile.created_at) }} 加入</span>
+          <span v-if="profile"> {{ formatDate(profile.created_at) }} 加入</span>
         </p>
       </div>
       <button class="logout-btn" @click="handleLogout" title="退出登录">
@@ -17,66 +15,58 @@
       </button>
     </div>
 
-    <!-- 评分列表 -->
-    <section v-if="ratedMovies.length > 0" class="favorites-section">
-      <h2 class="section-title">
-        <span class="title-accent">★</span>
-        我的评分
-        <span class="count-badge">{{ ratedMovies.length }}</span>
-      </h2>
-      <div class="movies-grid">
-        <div
+    <!-- Tab 切换栏 -->
+    <div class="tab-bar">
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'ratings' }"
+        @click="activeTab = 'ratings'"
+      >
+        <span class="tab-icon">★</span>
+        <span class="tab-label">我的评分</span>
+        <span class="tab-count">{{ ratedMovies.length }}</span>
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'favorites' }"
+        @click="activeTab = 'favorites'"
+      >
+        <span class="tab-icon">♥</span>
+        <span class="tab-label">我的收藏</span>
+        <span class="tab-count">{{ favoriteMovies.length }}</span>
+      </button>
+    </div>
+
+    <!-- 加载中 -->
+    <div v-if="loading" class="skeleton-grid">
+      <div v-for="i in 6" :key="i" class="skeleton-card" />
+    </div>
+
+    <!-- 我的评分 -->
+    <section v-else-if="activeTab === 'ratings'">
+      <div v-if="ratedMovies.length === 0" class="empty-state">
+        <span class="empty-icon">★</span>
+        <h3>还没有评分记录</h3>
+        <p>在电影详情页给喜欢的电影打分吧</p>
+        <router-link to="/explore" class="explore-btn">去发现好电影</router-link>
+      </div>
+      <div v-else class="movies-grid">
+        <MovieCard
           v-for="movie in ratedMovies"
           :key="movie.movie_id"
-          class="rated-card"
-          @click="$router.push(`/movie/${movie.movie_id}`)"
-        >
-          <div class="rated-poster">
-            <img
-              v-if="movie.poster_url"
-              :src="movie.poster_url"
-              :alt="movie.title"
-              class="rated-img"
-            />
-            <div v-else class="rated-ph">
-              <span>🎬</span>
-            </div>
-            <div class="rated-score-badge">
-              <StarRating :model-value="movie.user_rating" readonly />
-            </div>
-          </div>
-          <div class="rated-info">
-            <h3 class="rated-title">{{ movie.title }}</h3>
-            <span v-if="movie.rating > 0" class="rated-douban">豆瓣 {{ movie.rating }}</span>
-          </div>
-        </div>
+          :movie="{ ...movie, similarity_score: movie.user_rating / 5 }"
+        />
       </div>
     </section>
 
-    <!-- 收藏列表 -->
-    <section class="favorites-section">
-      <h2 class="section-title">
-        <span class="title-accent">♥</span>
-        我的收藏
-        <span v-if="!loading && favorites.length > 0" class="count-badge">
-          {{ favorites.length }}
-        </span>
-      </h2>
-
-      <!-- 加载中 -->
-      <div v-if="loading" class="skeleton-grid">
-        <div v-for="i in 6" :key="i" class="skeleton-card" />
-      </div>
-
-      <!-- 空状态 -->
-      <div v-else-if="favorites.length === 0" class="empty-state">
+    <!-- 我的收藏 -->
+    <section v-else>
+      <div v-if="favoriteMovies.length === 0" class="empty-state">
         <span class="empty-icon">♡</span>
         <h3>还没有收藏电影</h3>
-        <p>去发现好电影，点击爱心收藏吧！</p>
+        <p>去发现好电影，点击爱心收藏吧</p>
         <router-link to="/explore" class="explore-btn">去探索</router-link>
       </div>
-
-      <!-- 电影网格 -->
       <div v-else class="movies-grid">
         <MovieCard
           v-for="movie in favoriteMovies"
@@ -92,22 +82,20 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "@/composables/useAuth.js";
-import { getFavoriteMovies } from "@/api/auth.js";
-import { getRatedMovies } from "@/api/auth.js";
+import { getFavoriteMovies, getRatedMovies } from "@/api/auth.js";
 import MovieCard from "@/components/MovieCard.vue";
-import StarRating from "@/components/StarRating.vue";
 
 const router = useRouter();
-const { currentUser, isAuthenticated, token, favorites, ratings, logout } = useAuth();
+const { currentUser, isAuthenticated, token, logout } = useAuth();
 
 const username = computed(() => currentUser.value || "");
 const initial = computed(() => username.value.charAt(0).toUpperCase());
-const ratingCount = computed(() => Object.keys(ratings.value).length);
 
 const profile = ref(null);
 const favoriteMovies = ref([]);
 const ratedMovies = ref([]);
 const loading = ref(true);
+const activeTab = ref("ratings");
 
 function formatDate(isoStr) {
   if (!isoStr) return "";
@@ -132,6 +120,7 @@ onMounted(async () => {
     ]);
     favoriteMovies.value = favData.movies || [];
     ratedMovies.value = ratedData.movies || [];
+    activeTab.value = ratedMovies.value.length > 0 ? "ratings" : "favorites";
   } catch {
     favoriteMovies.value = [];
     ratedMovies.value = [];
@@ -155,7 +144,7 @@ onMounted(async () => {
   border-radius: var(--radius-xl);
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  margin-bottom: 36px;
+  margin-bottom: 28px;
 }
 
 .hero-avatar {
@@ -191,11 +180,6 @@ onMounted(async () => {
   color: var(--text-secondary);
 }
 
-.hero-meta strong {
-  color: var(--gold);
-  font-weight: 700;
-}
-
 .logout-btn {
   display: flex;
   align-items: center;
@@ -218,38 +202,73 @@ onMounted(async () => {
   background: rgba(248, 113, 113, 0.06);
 }
 
-.logout-icon {
+.logout-icon { font-size: 16px; }
+
+/* ── Tab bar ─────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.tab-btn.active {
+  background: var(--gold-subtle);
+  color: var(--gold);
+  box-shadow: 0 1px 4px rgba(245, 197, 24, 0.1);
+}
+
+.tab-icon {
   font-size: 16px;
 }
 
-/* ── Section title ───────────────────── */
-.section-title {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
+.tab-label {
+  font-weight: 600;
 }
 
-.title-accent {
-  color: var(--gold);
-  font-size: 22px;
-}
-
-.count-badge {
+.tab-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--gold-subtle);
-  color: var(--gold);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.08);
   font-size: 12px;
   font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.tab-btn.active .tab-count {
+  background: rgba(245, 197, 24, 0.18);
+  color: var(--gold);
 }
 
 /* ── Movies grid ─────────────────────── */
@@ -334,76 +353,17 @@ onMounted(async () => {
     padding: 24px 20px;
   }
 
-  .logout-text {
-    display: none;
+  .logout-text { display: none; }
+
+  .tab-btn {
+    padding: 10px 12px;
+    gap: 4px;
+    font-size: 13px;
   }
 
   .movies-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 14px;
   }
-}
-
-/* ── Rated cards ────────────────────── */
-.rated-card {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.rated-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(245, 197, 24, 0.12);
-}
-.rated-poster {
-  position: relative;
-  aspect-ratio: 3 / 4;
-  background: var(--bg-surface);
-  overflow: hidden;
-}
-.rated-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.rated-ph {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(145deg, #1a1a2e, #16213e);
-  font-size: 40px;
-}
-.rated-score-badge {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 20px 8px 8px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.88) 0%, transparent 100%);
-  display: flex;
-  justify-content: center;
-}
-.rated-info {
-  padding: 10px 12px 12px;
-}
-.rated-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 4px;
-}
-.rated-douban {
-  font-size: 12px;
-  color: var(--gold);
-  font-weight: 700;
-  font-family: var(--font-display);
 }
 </style>
