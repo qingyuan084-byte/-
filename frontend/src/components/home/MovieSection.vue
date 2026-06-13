@@ -6,14 +6,13 @@
         {{ expanded ? label + ' · 全部' : label }}
         <span v-if="badge" class="section-badge">{{ badge }}</span>
       </h2>
-      <a
+      <router-link
         v-if="moreLink"
         class="section-more"
-        :href="moreLink"
-        @click.prevent="$emit('toggleExpand')"
+        :to="moreLink"
       >
-        {{ expanded ? '收起 ↑' : moreText }}
-      </a>
+        {{ moreText }}
+      </router-link>
       <a v-else href="#" class="section-more" @click.prevent="$emit('toggleExpand')">
         {{ expanded ? '收起 ↑' : moreText }}
       </a>

@@ -44,7 +44,6 @@
         <span class="user-rate-label">我的评分</span>
         <StarRating
           :model-value="userRating"
-          :readonly="!isAuthenticated"
           show-label
           @rate="handleRate"
         />

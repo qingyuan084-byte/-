@@ -6,26 +6,17 @@
         <span class="logo-text">随便乱推</span>
       </a>
 
-      <nav class="nav-links">
-        <a href="#" class="nav-link active" @click.prevent="$emit('scrollToTop')">首页</a>
-        <router-link to="/explore" class="nav-link">电影分类</router-link>
-        <router-link to="/ranking" class="nav-link">排行榜</router-link>
-        <router-link to="/chat" class="nav-link">AI 推荐</router-link>
-      </nav>
-
-      <div class="header-right">
-        <div class="search-wrap">
-          <input
-            :value="modelValue"
-            class="search-input"
-            placeholder="搜索电影..."
-            @input="$emit('update:modelValue', $event.target.value)"
-            @keyup.enter="$emit('search')"
-          />
-          <button class="search-btn" @click="$emit('search')">
-            <span>⌕</span>
-          </button>
-        </div>
+      <div class="search-wrap">
+        <input
+          :value="modelValue"
+          class="search-input"
+          placeholder="搜索电影..."
+          @input="$emit('update:modelValue', $event.target.value)"
+          @keyup.enter="$emit('search')"
+        />
+        <button class="search-btn" @click="$emit('search')">
+          <span>⌕</span>
+        </button>
       </div>
     </div>
   </header>
@@ -56,7 +47,8 @@ defineEmits(["update:modelValue", "search", "scrollToTop"]);
   height: 100%;
   display: flex;
   align-items: center;
-  gap: 40px;
+  justify-content: center;
+  position: relative;
 }
 .logo-wrap {
   display: flex;
@@ -64,8 +56,9 @@ defineEmits(["update:modelValue", "search", "scrollToTop"]);
   gap: 8px;
   text-decoration: none;
   color: var(--text-primary);
-  flex-shrink: 0;
   cursor: pointer;
+  position: absolute;
+  left: 28px;
 }
 .logo-icon {
   font-size: 22px;
@@ -76,35 +69,6 @@ defineEmits(["update:modelValue", "search", "scrollToTop"]);
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.04em;
-}
-.nav-links {
-  display: flex;
-  gap: 2px;
-  flex: 1;
-}
-.nav-link {
-  padding: 8px 16px;
-  text-decoration: none;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-.nav-link:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
-}
-.nav-link.active {
-  color: var(--gold);
-  background: var(--gold-subtle);
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
 }
 .search-wrap {
   display: flex;
@@ -119,8 +83,8 @@ defineEmits(["update:modelValue", "search", "scrollToTop"]);
   border-color: var(--gold);
 }
 .search-input {
-  width: 200px;
-  padding: 8px 12px;
+  width: 280px;
+  padding: 8px 14px;
   background: transparent;
   border: none;
   color: var(--text-primary);
@@ -132,7 +96,7 @@ defineEmits(["update:modelValue", "search", "scrollToTop"]);
   color: var(--text-muted);
 }
 .search-btn {
-  padding: 8px 12px;
+  padding: 8px 14px;
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -144,8 +108,8 @@ defineEmits(["update:modelValue", "search", "scrollToTop"]);
   color: var(--gold);
 }
 @media (max-width: 768px) {
-  .header-inner { padding: 0 16px; gap: 16px; }
-  .nav-links { display: none; }
-  .search-input { width: 140px; }
+  .header-inner { padding: 0 16px; }
+  .logo-wrap { position: static; }
+  .search-input { width: 160px; }
 }
 </style>
