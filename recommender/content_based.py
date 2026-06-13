@@ -208,10 +208,15 @@ class ContentBasedRecommender:
             print(f"[文本搜索] 查询词 '{query_text}' 不在 TF-IDF 词汇中，回退到关键词匹配")
             return self._fallback_search(query_text, top_n)
 
-        # 3) 正常 TF-IDF 余弦相似度
+        # 3) 维度不匹配时直接回退（防御性检查）
+        if query_vec.shape[1] != self.tfidf_matrix.shape[1]:
+            print(f"[文本搜索] 向量维度不匹配 ({query_vec.shape[1]} vs {self.tfidf_matrix.shape[1]})，回退关键词匹配")
+            return self._fallback_search(query_text, top_n)
+
+        # 4) 正常 TF-IDF 余弦相似度
         sims = cosine_similarity(query_vec, self.tfidf_matrix, dense_output=True)[0]
 
-        # 4) 最高分过低也回退（query 虽然有特征但匹配太弱）
+        # 5) 最高分过低也回退（query 虽然有特征但匹配太弱）
         if sims.max() < 0.005:
             print(f"[文本搜索] 查询 '{query_text}' TF-IDF 最高分 {sims.max():.6f} 过低，回退关键词匹配")
             return self._fallback_search(query_text, top_n)
@@ -228,9 +233,10 @@ class ContentBasedRecommender:
 
     def _fallback_search(self, query_text: str, top_n: int = 10) -> list[tuple[str, str, float]]:
         """
-        后备搜索：多策略关键词匹配（标题 + 简介）。
+        后备搜索：多策略关键词匹配（标题 + 简介 + 导演 + 演员 + 类型 + 国家）。
 
         策略（按权重从高到低）：
+        0. jieba 关键词精确匹配导演/演员/类型/国家 → +6 分/词
         1. 查询文本整体作为子串匹配标题 → +5 分
         2. jieba 关键词精确匹配标题 → +3 分/词
         3. jieba 关键词拆成单字，全部命中标题 → +2 分/词
@@ -239,10 +245,8 @@ class ContentBasedRecommender:
         """
         import jieba
 
-        # 确保加载了简介数据
         self._ensure_summaries_loaded()
 
-        # jieba 分词
         keywords = [w.strip() for w in jieba.cut(query_text) if len(w.strip()) > 1]
         if not keywords:
             keywords = [query_text.strip()]
@@ -256,8 +260,16 @@ class ContentBasedRecommender:
             row = self.movie_ids_df.iloc[i]
             title = str(row.get("title", ""))
             title_lower = title.lower()
-            summary = self._summaries.get(str(row.get("movie_id", "")), "")
+            mid = str(row.get("movie_id", ""))
+            summary = self._summaries.get(mid, "")
             score = 0.0
+
+            # 策略 0: 导演/演员/类型/国家匹配（最高权重）
+            for kw in keywords:
+                for field_name in ["directors", "actors", "genres", "countries"]:
+                    field_val = self._metadata_fields.get(field_name, {}).get(mid, "")
+                    if field_val and kw in field_val:
+                        score += 6.0
 
             # 策略 1: 完整查询作为标题子串
             if query_lower in title_lower:
@@ -292,34 +304,46 @@ class ContentBasedRecommender:
         top_indices = np.argpartition(scores, -top_n)[-top_n:]
         top_indices = top_indices[np.argsort(scores[top_indices])[::-1]]
 
-        # 使用原始分数（不归一化），前端按分数排序即可
         raw_max = float(scores.max())
         results = []
         for i in top_indices:
             if scores[i] > 0:
                 mid, title = self._get_movie_info(i)
-                # 分数除以最大可能分数做软归一化（非强制到 1.0）
-                max_possible = 5.0 + len(keywords) * 3.0 + len(keywords) * 2.0 + len(keywords) * 1.0 + len(query_chars) * 0.2
+                max_possible = 6.0 + 5.0 + len(keywords) * 3.0 + len(keywords) * 2.0 + len(keywords) * 1.0 + len(query_chars) * 0.2
                 normalized = round(min(float(scores[i]) / max(max_possible, 1.0), 1.0), 4)
                 results.append((mid, title, normalized))
 
         return results
 
     def _ensure_summaries_loaded(self):
-        """按需加载电影简介（用于后备搜索的策略 4）。"""
+        """按需加载电影元数据（简介、导演、演员、类型、国家 — 用于后备搜索）。"""
         if hasattr(self, "_summaries") and self._summaries:
             return
         self._summaries = {}
+        self._metadata_fields = {
+            "directors": {},
+            "actors": {},
+            "genres": {},
+            "countries": {},
+        }
         cleaned_path = Path("data/processed/douban_movies_cleaned.csv")
         if cleaned_path.exists():
             try:
+                usecols = ["movie_id", "summary"]
+                for col in ["directors", "actors", "genres", "countries"]:
+                    usecols.append(col)
                 df = pd.read_csv(
                     cleaned_path,
                     dtype={"movie_id": str},
-                    usecols=["movie_id", "summary"],
+                    usecols=usecols,
                 )
                 df["movie_id"] = df["movie_id"].astype(str)
                 self._summaries = dict(zip(df["movie_id"], df["summary"].fillna("")))
+                for col in ["directors", "actors", "genres", "countries"]:
+                    if col in df.columns:
+                        self._metadata_fields[col] = dict(
+                            zip(df["movie_id"], df[col].fillna(""))
+                        )
             except Exception:
                 pass
 

@@ -61,6 +61,7 @@ from backend.services.qa.intent import (
     keyword_classify,
     extract_movie_name,
     extract_field,
+    extract_person_for_search,
 )
 
 
@@ -562,7 +563,8 @@ class QAService:
         intent = self._keyword_classify(user_message)
 
         if intent == "recommend":
-            reply, related_ids = self._handle_recommend(user_message, session_id)
+            search_query = extract_person_for_search(user_message) or user_message
+            reply, related_ids = self._handle_recommend(search_query, session_id)
         elif intent == "info":
             reply, related_ids = self._handle_info(user_message, session_id)
         elif intent == "filter":

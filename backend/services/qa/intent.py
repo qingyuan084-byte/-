@@ -10,6 +10,37 @@ from backend.services.qa.constants import (
     FILTER_RESET_KEYWORDS,
 )
 
+# 人物 + 角色关键词模式：匹配 "宫崎骏导演的电影"、"诺兰的作品"、"汤姆汉克斯演的"
+# group(1) = 人名, group(2) = 角色词
+_PERSON_ROLE_RE = re.compile(
+    r'([一-鿿\w·]{1,8}?)(导演|主演|拍的|的电影|的作品|导演的|演的|主演的|执导|作品的|拍摄)'
+)
+
+
+def extract_person_for_search(message: str) -> str | None:
+    """从人物查询中提取人名，如 "宫崎骏导演的电影" → "宫崎骏"。
+
+    当用户询问某导演/演员的作品但没有指定具体电影名时，
+    提取人名用于搜索推荐。返回 None 表示未检测到人物查询模式。
+    """
+    msg = message.strip().replace(" ", "")
+    m = _PERSON_ROLE_RE.search(msg)
+    if not m:
+        return None
+    person = m.group(1)
+
+    # 去除常见前缀（"推荐"、"找"、"想要" 等）
+    _prefixes = ("推荐", "找", "想要", "想看", "有没有", "有没有什么")
+    for pfx in sorted(_prefixes, key=len, reverse=True):
+        if person.startswith(pfx):
+            person = person[len(pfx):]
+            break
+
+    person = person.strip("，。,!！?？")
+    if len(person) < 2:
+        return None
+    return person
+
 
 def keyword_classify(message: str) -> str | None:
     """关键词规则快速分类，返回 intent 或 None（未命中）。"""
@@ -33,9 +64,14 @@ def keyword_classify(message: str) -> str | None:
     has_info_kw = any(kw in msg for kw in INFO_KEYWORDS)
     has_recommend_kw = any(kw in msg for kw in RECOMMEND_KEYWORDS)
     has_filter_kw = any(kw in msg for kw in FILTER_KEYWORDS)
+    has_person = _PERSON_ROLE_RE.search(msg) and not has_movie_name
 
     if has_movie_name and has_info_kw:
         return "info"
+
+    # 人物查询（"宫崎骏导演的电影"/"推荐宫崎骏导演的电影"）— 无具体电影名时路由到推荐
+    if has_person:
+        return "recommend"
 
     # 3) 筛选关键词 → filter（优先于 recommend）
     if has_filter_kw:

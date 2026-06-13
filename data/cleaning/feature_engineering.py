@@ -86,8 +86,17 @@ def build_features(input_path: Path = INPUT_PATH, output_dir: Path = FEATURES_DI
     print("\n" + "=" * 50)
     print("2. TF-IDF 文本特征 (TfidfVectorizer)")
 
-    # 拼接 title + summary
-    df["text"] = df["title"].fillna("") + " " + df["summary"].fillna("暂无简介")
+    # 拼接 title + summary + directors + actors + genres + countries
+    # 丰富文本语料以便搜索导演/演员/国家等元数据
+    parts = [
+        df["title"].fillna(""),
+        df["summary"].fillna("暂无简介"),
+        df.get("directors", pd.Series([""] * len(df))).fillna(""),
+        df.get("actors", pd.Series([""] * len(df))).fillna(""),
+        df.get("genres", pd.Series([""] * len(df))).fillna(""),
+        df.get("countries", pd.Series([""] * len(df))).fillna(""),
+    ]
+    df["text"] = parts[0].str.cat(parts[1:], sep=" ")
 
     tfidf = TfidfVectorizer(
         max_features=300,

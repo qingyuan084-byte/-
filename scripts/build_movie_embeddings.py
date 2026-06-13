@@ -61,7 +61,10 @@ def build_embedding_text(row: pd.Series) -> str:
     title = str(row.get("title", ""))
     summary = str(row.get("summary", ""))
     genres = str(row.get("genres", ""))
-    return f"{title} {summary} {genres}"
+    directors = str(row.get("directors", ""))
+    actors = str(row.get("actors", ""))
+    countries = str(row.get("countries", ""))
+    return f"{title} {summary} {genres} 导演:{directors} 主演:{actors} 国家:{countries}"
 
 
 # ── ZhipuAI 编码 ──────────────────────────────────
