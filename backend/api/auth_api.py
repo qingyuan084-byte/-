@@ -171,23 +171,6 @@ async def delete_movie_rating(
     )
 
 
-@router.get("/api/ratings/{movie_id}", response_model=RatingGetResponse)
-async def get_movie_rating(
-    movie_id: str,
-    user: dict = Depends(get_current_user),
-):
-    """获取用户对某部电影的评分，未评返回 None。"""
-    rating = _get_user_rating(user["user_id"], movie_id)
-    return RatingGetResponse(movie_id=movie_id, rating=rating)
-
-
-@router.get("/api/ratings", response_model=RatingListResponse)
-async def list_ratings(user: dict = Depends(get_current_user)):
-    """获取用户所有评分记录。"""
-    ratings = _get_all_ratings(user["user_id"])
-    return RatingListResponse(ratings=ratings, total=len(ratings))
-
-
 @router.get("/api/ratings/detail")
 async def list_ratings_detail(user: dict = Depends(get_current_user)):
     """获取用户评分电影的完整详情列表（含评分值）。"""
@@ -205,3 +188,20 @@ async def list_ratings_detail(user: dict = Depends(get_current_user)):
             movies.append(detail)
 
     return {"movies": movies, "total": len(movies)}
+
+
+@router.get("/api/ratings/{movie_id}", response_model=RatingGetResponse)
+async def get_movie_rating(
+    movie_id: str,
+    user: dict = Depends(get_current_user),
+):
+    """获取用户对某部电影的评分，未评返回 None。"""
+    rating = _get_user_rating(user["user_id"], movie_id)
+    return RatingGetResponse(movie_id=movie_id, rating=rating)
+
+
+@router.get("/api/ratings", response_model=RatingListResponse)
+async def list_ratings(user: dict = Depends(get_current_user)):
+    """获取用户所有评分记录。"""
+    ratings = _get_all_ratings(user["user_id"])
+    return RatingListResponse(ratings=ratings, total=len(ratings))
