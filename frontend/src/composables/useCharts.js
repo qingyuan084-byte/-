@@ -5,20 +5,31 @@ import { CanvasRenderer } from "echarts/renderers";
 
 echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
-const CHART_TEXT_COLOR = "#94A3B8";
-const CHART_ACCENT = "#F97316";
-const CHART_ACCENT_LIGHT = "rgba(249, 115, 22, 0.25)";
-const TOOLTIP_BG = "rgba(15, 23, 42, 0.92)";
+/** 从 CSS 变量读取当前主题的图表颜色 */
+function getThemeColors() {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    accent: style.getPropertyValue("--chart-accent").trim() || "#f97316",
+    accentLight: style.getPropertyValue("--chart-accent-light").trim() || "rgba(249,115,22,0.25)",
+    accentDim: style.getPropertyValue("--chart-accent-dim").trim() || "rgba(249,115,22,0.08)",
+    secondary: style.getPropertyValue("--chart-secondary").trim() || "#22C55E",
+    secondaryLight: style.getPropertyValue("--chart-secondary-light").trim() || "rgba(34,197,94,0.2)",
+    text: style.getPropertyValue("--chart-text").trim() || "#94A3B8",
+    grid: style.getPropertyValue("--chart-grid").trim() || "rgba(148,163,184,0.1)",
+    tooltipBg: style.getPropertyValue("--chart-tooltip-bg").trim() || "rgba(15,23,42,0.92)",
+  };
+}
 
 function baseGrid() {
   return { top: 12, right: 20, bottom: 32, left: 48 };
 }
 
 function baseTooltip() {
+  const c = getThemeColors();
   return {
-    backgroundColor: TOOLTIP_BG,
-    borderColor: "rgba(249, 115, 22, 0.3)",
-    textStyle: { color: "#E2E8F0", fontSize: 12 },
+    backgroundColor: c.tooltipBg,
+    borderColor: c.accentLight,
+    textStyle: { color: c.text === "#64748b" ? "#1e293b" : "#E2E8F0", fontSize: 12 },
   };
 }
 
@@ -34,6 +45,7 @@ export function useCharts() {
     const instance = initChart(domRef);
     if (!instance) return;
     charts.push(instance);
+    const c = getThemeColors();
 
     const ratings = movies.map((m) => m.rating).filter((r) => r > 0);
     const bins = [0, 5, 6, 7, 8, 9, 10];
@@ -50,26 +62,26 @@ export function useCharts() {
       tooltip: baseTooltip(),
       xAxis: {
         type: "category", data: labels,
-        axisLine: { lineStyle: { color: CHART_TEXT_COLOR } },
+        axisLine: { lineStyle: { color: c.text } },
         axisTick: { show: false },
-        axisLabel: { color: CHART_TEXT_COLOR, fontSize: 10 },
+        axisLabel: { color: c.text, fontSize: 10 },
       },
       yAxis: {
         type: "value",
-        splitLine: { lineStyle: { color: "rgba(148, 163, 184, 0.1)" } },
-        axisLabel: { color: CHART_TEXT_COLOR },
+        splitLine: { lineStyle: { color: c.grid } },
+        axisLabel: { color: c.text },
       },
       series: [{
         type: "bar", data: counts,
         itemStyle: {
           borderRadius: [6, 6, 0, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: CHART_ACCENT },
-            { offset: 1, color: CHART_ACCENT_LIGHT },
+            { offset: 0, color: c.accent },
+            { offset: 1, color: c.accentLight },
           ]),
         },
         barWidth: "55%",
-        emphasis: { itemStyle: { color: "#FB923C" } },
+        emphasis: { itemStyle: { color: c.accent } },
       }],
     });
   }
@@ -78,6 +90,7 @@ export function useCharts() {
     const instance = initChart(domRef);
     if (!instance) return;
     charts.push(instance);
+    const c = getThemeColors();
 
     const yearMap = {};
     movies.forEach((m) => {
@@ -91,26 +104,26 @@ export function useCharts() {
       tooltip: baseTooltip(),
       xAxis: {
         type: "category", data: sorted.map(([y]) => y),
-        axisLabel: { color: CHART_TEXT_COLOR, fontSize: 9, rotate: 45 },
+        axisLabel: { color: c.text, fontSize: 9, rotate: 45 },
         axisTick: { show: false },
-        axisLine: { lineStyle: { color: CHART_TEXT_COLOR } },
+        axisLine: { lineStyle: { color: c.text } },
       },
       yAxis: {
         type: "value",
-        splitLine: { lineStyle: { color: "rgba(148, 163, 184, 0.1)" } },
-        axisLabel: { color: CHART_TEXT_COLOR },
+        splitLine: { lineStyle: { color: c.grid } },
+        axisLabel: { color: c.text },
       },
       series: [{
-        type: "line", data: sorted.map(([, c]) => c),
+        type: "line", data: sorted.map(([, cnt]) => cnt),
         smooth: true,
-        lineStyle: { color: CHART_ACCENT, width: 2 },
+        lineStyle: { color: c.accent, width: 2 },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "rgba(249, 115, 22, 0.3)" },
-            { offset: 1, color: "rgba(249, 115, 22, 0.02)" },
+            { offset: 0, color: c.accentLight },
+            { offset: 1, color: c.accentDim },
           ]),
         },
-        itemStyle: { color: CHART_ACCENT },
+        itemStyle: { color: c.accent },
         symbol: "none",
       }],
     });
@@ -120,6 +133,7 @@ export function useCharts() {
     const instance = initChart(domRef);
     if (!instance) return;
     charts.push(instance);
+    const c = getThemeColors();
 
     const yearMap = {};
     movies.forEach((m) => {
@@ -138,26 +152,26 @@ export function useCharts() {
       tooltip: baseTooltip(),
       xAxis: {
         type: "category", data: sorted.map(([y]) => y),
-        axisLabel: { color: CHART_TEXT_COLOR, fontSize: 9, rotate: 45 },
+        axisLabel: { color: c.text, fontSize: 9, rotate: 45 },
         axisTick: { show: false },
-        axisLine: { lineStyle: { color: CHART_TEXT_COLOR } },
+        axisLine: { lineStyle: { color: c.text } },
       },
       yAxis: {
         type: "value", min: 4, max: 10,
-        splitLine: { lineStyle: { color: "rgba(148, 163, 184, 0.1)" } },
-        axisLabel: { color: CHART_TEXT_COLOR },
+        splitLine: { lineStyle: { color: c.grid } },
+        axisLabel: { color: c.text },
       },
       series: [{
         type: "line", data: sorted.map(([, avg]) => +avg.toFixed(2)),
         smooth: true,
-        lineStyle: { color: "#22C55E", width: 2 },
+        lineStyle: { color: c.secondary, width: 2 },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "rgba(34, 197, 94, 0.2)" },
-            { offset: 1, color: "rgba(34, 197, 94, 0.02)" },
+            { offset: 0, color: c.secondaryLight },
+            { offset: 1, color: c.accentDim },
           ]),
         },
-        itemStyle: { color: "#22C55E" },
+        itemStyle: { color: c.secondary },
         symbol: "none",
       }],
     });
@@ -167,6 +181,7 @@ export function useCharts() {
     const instance = initChart(domRef);
     if (!instance) return;
     charts.push(instance);
+    const c = getThemeColors();
 
     const genreCount = {};
     movies.forEach((m) => {
@@ -183,22 +198,22 @@ export function useCharts() {
       tooltip: baseTooltip(),
       xAxis: {
         type: "value",
-        splitLine: { lineStyle: { color: "rgba(148, 163, 184, 0.1)" } },
-        axisLabel: { color: CHART_TEXT_COLOR },
+        splitLine: { lineStyle: { color: c.grid } },
+        axisLabel: { color: c.text },
       },
       yAxis: {
         type: "category", data: top10.map(([g]) => g),
-        axisLine: { lineStyle: { color: CHART_TEXT_COLOR } },
+        axisLine: { lineStyle: { color: c.text } },
         axisTick: { show: false },
-        axisLabel: { color: CHART_TEXT_COLOR, fontSize: 11 },
+        axisLabel: { color: c.text, fontSize: 11 },
       },
       series: [{
-        type: "bar", data: top10.map(([, c]) => c),
+        type: "bar", data: top10.map(([, cnt]) => cnt),
         itemStyle: {
           borderRadius: [0, 6, 6, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: CHART_ACCENT_LIGHT },
-            { offset: 1, color: CHART_ACCENT },
+            { offset: 0, color: c.accentLight },
+            { offset: 1, color: c.accent },
           ]),
         },
         barWidth: "60%",
@@ -225,5 +240,6 @@ export function useCharts() {
     buildRatingDistChart, buildYearlyCountChart,
     buildAvgRatingChart, buildGenresChart,
     destroyCharts, resizeCharts, parseGenres,
+    getThemeColors,
   };
 }

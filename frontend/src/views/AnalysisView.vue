@@ -77,12 +77,15 @@ import { getMovieListRich } from "@/api/index.js";
 import StatsOverview from "@/components/analysis/StatsOverview.vue";
 import MovieTable from "@/components/analysis/MovieTable.vue";
 import { useCharts } from "@/composables/useCharts.js";
+import { useTheme } from "@/composables/useTheme.js";
 
 const {
   buildRatingDistChart, buildYearlyCountChart,
   buildAvgRatingChart, buildGenresChart,
   destroyCharts, resizeCharts, parseGenres,
 } = useCharts();
+
+const { isDark } = useTheme();
 
 const loading = ref(true);
 const allMovies = ref([]);
@@ -208,6 +211,13 @@ function renderAllCharts() {
 onMounted(async () => {
   await fetchData();
   window.addEventListener("resize", resizeCharts);
+});
+
+// 主题切换时重建图表
+watch(() => isDark(), () => {
+  if (allMovies.value.length > 0) {
+    nextTick(() => renderAllCharts());
+  }
 });
 
 onBeforeUnmount(() => {

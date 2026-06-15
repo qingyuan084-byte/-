@@ -1,11 +1,5 @@
 <template>
   <div class="home-view">
-    <HeroSearch
-      v-model="searchText"
-      @search="onSearch"
-      @scroll-to-top="scrollToTop"
-    />
-
     <div class="home-body">
       <main class="main-content">
         <BannerCarousel
@@ -100,10 +94,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import MovieCard from "@/components/MovieCard.vue";
-import HeroSearch from "@/components/home/HeroSearch.vue";
 import BannerCarousel from "@/components/home/BannerCarousel.vue";
 import MovieSection from "@/components/home/MovieSection.vue";
 import SidebarRanking from "@/components/home/SidebarRanking.vue";
@@ -112,6 +105,7 @@ import { useMovies, formatGenres } from "@/composables/useMovies.js";
 import { useSearch } from "@/composables/useSearch.js";
 
 const router = useRouter();
+const route = useRoute();
 
 const categoriesSection = ref(null);
 const catRefs = {};
@@ -178,6 +172,22 @@ onMounted(async () => {
   await Promise.all([fetchMovies(), fetchBannerMovies(), fetchNewestMovies()]);
   updateCategoryMovies();
   markLoaded();
+  // 从 URL 恢复搜索
+  const q = route.query.q;
+  if (q && typeof q === "string") {
+    searchText.value = q;
+    onSearch();
+  }
+});
+
+// 监听路由搜索参数变化
+watch(() => route.query.q, (q) => {
+  if (q && typeof q === "string" && q !== searchQuery.value) {
+    searchText.value = q;
+    onSearch();
+  } else if (!q) {
+    clearFilter();
+  }
 });
 </script>
 
